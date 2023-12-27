@@ -1,4 +1,4 @@
-module goPasetoV4
+module github.com/anfen93/goPasetoV4
 
 go 1.21
 
