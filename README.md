@@ -78,9 +78,10 @@ You can configure the nonce used in token generation by setting the `PASETO_NONC
 
 Contributions are welcome! Please feel free to submit a pull request or open issues to improve the functionality, documentation, or code quality of `goPasetoV4`.
 
+## Version
+The current version of `goPasetoV4` is `v1.0.0`.
 ## TODOS
 - Right now the implementation of the Payload is not so flexible. It should be possibile to personalize the payload with custom fields.
 - Improve Test Coverage
 ## License
-
 This project is licensed under the [MIT License](LICENSE.md).
