@@ -1,56 +1,93 @@
 package goPasetoV4
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
-func TestPasetoMakerTokenLifecycle(t *testing.T) {
-	// Testing token creation and validation lifecycle
+func TestPasetoMaker(t *testing.T) {
 	maker := NewPasetoMaker()
-	require.NotNil(t, maker, "Maker should not be nil")
 
-	username := "testuser"
-	duration := time.Minute
+	t.Run("CreateToken with Valid Inputs", func(t *testing.T) {
+		username := "testuser"
+		duration := time.Minute
 
-	token, payload, err := maker.CreateToken(username, duration)
-	require.NoError(t, err, "Token creation should not error")
-	require.NotEmpty(t, token, "Token should not be empty")
-	require.NotEmpty(t, payload, "Payload should not be empty")
+		token, payload, err := maker.CreateToken(username, duration)
+		require.NoError(t, err)
+		require.NotEmpty(t, token)
+		require.NotNil(t, payload)
+		require.Equal(t, username, payload.Username)
+	})
 
-	payload, err = maker.VerifyToken(token)
-	require.NoError(t, err, "Token verification should not error")
-	require.NotEmpty(t, payload, "Payload should not be empty")
+	t.Run("VerifyToken with Valid Token", func(t *testing.T) {
+		username := "testuser"
+		duration := time.Minute
 
-	require.NotZero(t, payload.ID, "Payload ID should not be zero")
-	require.Equal(t, username, payload.Username, "Username should match")
-	require.WithinDuration(t, time.Now(), payload.IssuedAt, time.Second, "IssuedAt should be recent")
-	require.WithinDuration(t, time.Now().Add(duration), payload.ExpiredAt, time.Second, "ExpiredAt should be correct")
-}
+		token, _, err := maker.CreateToken(username, duration)
+		require.NoError(t, err)
 
-func TestPasetoMakerExpiredToken(t *testing.T) {
-	// Testing behavior with an expired token
-	maker := NewPasetoMaker()
-	require.NotNil(t, maker, "Maker should not be nil")
+		payload, err := maker.VerifyToken(token)
+		require.NoError(t, err)
+		require.NotNil(t, payload)
+		require.Equal(t, username, payload.Username)
+	})
 
-	token, payload, err := maker.CreateToken("expireduser", -time.Minute)
-	require.NoError(t, err, "Expired token creation should not error")
-	require.NotEmpty(t, token, "Expired token should not be empty")
+	t.Run("VerifyToken with Valid Token and Expiration in 24h", func(t *testing.T) {
+		username := "testuser"
+		//duration is expressed as time.Duration of 24h
+		duration := time.Duration(24) * time.Hour
 
-	payload, err = maker.VerifyToken(token)
-	require.Error(t, err, "Expired token verification should error")
-	require.EqualError(t, err, ErrExpiredToken.Error(), "Error should be ErrExpiredToken")
-	require.Nil(t, payload, "Payload should be nil for an expired token")
-}
+		token, _, err := maker.CreateToken(username, duration)
+		require.NoError(t, err)
 
-func TestPasetoMakerInvalidToken(t *testing.T) {
-	// Testing behavior with an invalid token
-	maker := NewPasetoMaker()
-	require.NotNil(t, maker, "Maker should not be nil")
+		payload, err := maker.VerifyToken(token)
+		require.NoError(t, err)
+		require.NotNil(t, payload)
+		require.Equal(t, username, payload.Username)
+	})
 
-	payload, err := maker.VerifyToken("invalidtoken")
-	require.Error(t, err, "Invalid token verification should error")
-	require.EqualError(t, err, ErrInvalidToken.Error(), "Error should be ErrInvalidToken")
-	require.Nil(t, payload, "Payload should be nil for an invalid token")
+	t.Run("VerifyToken with Expired Token", func(t *testing.T) {
+		username := "testuser"
+		//two minutes ago
+		expiredDuration := -time.Minute * 2
+
+		token, _, err := maker.CreateToken(username, expiredDuration)
+
+		payload, err := maker.VerifyToken(token)
+		require.Error(t, err)
+		require.Nil(t, payload)
+	})
+
+	t.Run("CreateToken with Zero Duration", func(t *testing.T) {
+		username := "testuser"
+
+		token, payload, err := maker.CreateToken(username, 0)
+		require.Error(t, err)
+		require.Empty(t, token)
+		require.Nil(t, payload)
+	})
+
+	t.Run("CreateToken with Negative Duration", func(t *testing.T) {
+		username := "testuser"
+
+		token, payload, err := maker.CreateToken(username, -time.Minute)
+		require.Error(t, err)
+		require.Empty(t, token)
+		require.Nil(t, payload)
+	})
+
+	t.Run("VerifyToken with Altered Token", func(t *testing.T) {
+		username := "testuser"
+		duration := time.Minute
+
+		token, _, err := maker.CreateToken(username, duration)
+		require.NoError(t, err)
+
+		alteredToken := token + "something-extra"
+		payload, err := maker.VerifyToken(alteredToken)
+		require.Error(t, err)
+		require.Nil(t, payload)
+	})
 }

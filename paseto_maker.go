@@ -6,6 +6,7 @@ package goPasetoV4
 import (
 	"aidanwoods.dev/go-paseto"
 	"crypto/rand"
+	"github.com/anfen93/goPasetoV4/util"
 	"github.com/google/uuid"
 	"os"
 	"strings"
@@ -37,10 +38,28 @@ func NewPasetoMaker() Maker {
 	return &PasetoMaker{paseto.NewV4SymmetricKey(), nonce}
 }
 
+// validateDuration validates the duration of a token. It returns true if the
+// duration is valid or false if it is not. It returns an error if the duration
+// is invalid.
+func validateDuration(duration time.Duration) (bool, error) {
+	if duration == 0 {
+		return false, util.ErrDurationNotSet()
+	}
+	if duration < 0 {
+		return false, util.ErrDurationNegative()
+	}
+	return true, nil
+}
+
 // CreateToken generates a new Paseto token for a given username and duration.
 // It returns an encrypted token string and the Payload struct, or an error if the token generation fails.
 func (maker *PasetoMaker) CreateToken(username string, duration time.Duration) (string, *Payload, error) {
 
+	// Validate the duration
+	_, err := validateDuration(duration)
+	if err != nil {
+		return "", nil, err
+	}
 	token := paseto.NewToken() // Initializes a new Paseto token
 
 	tokenID, err := uuid.NewRandom() // Generates a unique identifier for the token
