@@ -38,29 +38,36 @@ func NewPasetoMaker() Maker {
 }
 
 // CreateToken generates a new Paseto token for a given username and duration.
-// It returns an encrypted token string or an error if the token generation fails.
-func (maker *PasetoMaker) CreateToken(username string, duration time.Duration) (string, error) {
+// It returns an encrypted token string and the Payload struct, or an error if the token generation fails.
+func (maker *PasetoMaker) CreateToken(username string, duration time.Duration) (string, *Payload, error) {
 
 	token := paseto.NewToken() // Initializes a new Paseto token
 
 	tokenID, err := uuid.NewRandom() // Generates a unique identifier for the token
 	if err != nil {
-		return "", err // Returns an error if the token generation fails
+		return "", nil, err // Returns an error if the token generation fails
 	}
+
 	// Adding necessary data to the token
 	err = token.Set("id", tokenID.String())
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	err = token.Set("username", username)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	// Setting issued at and expiration times for the token
 	token.SetIssuedAt(time.Now())
 	token.SetExpiration(time.Now().Add(duration))
 	// Encrypts and returns the token
-	return token.V4Encrypt(maker.symmetricKey, maker.implicit), nil
+
+	encryptedToken := token.V4Encrypt(maker.symmetricKey, maker.implicit)
+	payload, err := getPayloadFromToken(&token)
+	if err != nil {
+		return "", nil, err // Returns an error if the token generation fails
+	}
+	return encryptedToken, payload, nil
 }
 
 // VerifyToken checks the validity of a provided Paseto token. It returns a Payload

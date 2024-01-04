@@ -14,11 +14,12 @@ func TestPasetoMakerTokenLifecycle(t *testing.T) {
 	username := "testuser"
 	duration := time.Minute
 
-	token, err := maker.CreateToken(username, duration)
+	token, payload, err := maker.CreateToken(username, duration)
 	require.NoError(t, err, "Token creation should not error")
 	require.NotEmpty(t, token, "Token should not be empty")
+	require.NotEmpty(t, payload, "Payload should not be empty")
 
-	payload, err := maker.VerifyToken(token)
+	payload, err = maker.VerifyToken(token)
 	require.NoError(t, err, "Token verification should not error")
 	require.NotEmpty(t, payload, "Payload should not be empty")
 
@@ -33,11 +34,11 @@ func TestPasetoMakerExpiredToken(t *testing.T) {
 	maker := NewPasetoMaker()
 	require.NotNil(t, maker, "Maker should not be nil")
 
-	token, err := maker.CreateToken("expireduser", -time.Minute)
+	token, payload, err := maker.CreateToken("expireduser", -time.Minute)
 	require.NoError(t, err, "Expired token creation should not error")
 	require.NotEmpty(t, token, "Expired token should not be empty")
 
-	payload, err := maker.VerifyToken(token)
+	payload, err = maker.VerifyToken(token)
 	require.Error(t, err, "Expired token verification should error")
 	require.EqualError(t, err, ErrExpiredToken.Error(), "Error should be ErrExpiredToken")
 	require.Nil(t, payload, "Payload should be nil for an expired token")
